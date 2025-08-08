@@ -150,6 +150,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  // Expose for timer display widget (keeps logic in one place)
+  String formatTimePublic(int s) => _formatTime(s);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,7 +160,9 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Pomodoro Focus'),
         backgroundColor: Colors.transparent,
       ),
-      body: SingleChildScrollView(
+      body: RepaintBoundary(
+        // Prevent global repaints when only timer text changes.
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -174,17 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(
-                          child: Text(
-                            _formatTime(_totalSeconds),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 64,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ),
+                        Expanded(child: _TimerDisplay(seconds: _totalSeconds)),
                         if (_timerMode == TimerMode.countdown)
                           Column(
                             children: [
@@ -351,6 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -396,6 +392,31 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => _updateTomatoCount(type, 1),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TimerDisplay extends StatelessWidget {
+  final int seconds;
+  const _TimerDisplay({required this.seconds});
+
+  String _format(int totalSeconds) {
+    int hours = totalSeconds ~/ 3600;
+    int minutes = (totalSeconds % 3600) ~/ 60;
+    int secs = totalSeconds % 60;
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _format(seconds),
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 64,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 2,
       ),
     );
   }
