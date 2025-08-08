@@ -63,7 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_crushedTomatoes == 0 && _halfTomatoes == 0 && _wholeTomatoes == 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add some tomatoes before saving!')),
+        const SnackBar(
+          content: Text('Add some tomatoes before saving!'),
+          duration: Duration(milliseconds: 500),
+        ),
       );
       return;
     }
@@ -87,7 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Session saved to history!')),
+      const SnackBar(
+        content: Text('Session saved to history!'),
+        duration: Duration(milliseconds: 500),
+      ),
     );
   }
 

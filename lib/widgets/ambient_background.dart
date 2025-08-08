@@ -2,6 +2,7 @@
 
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:pomodoro_app/utils/perf.dart';
 
 /// Animated multi-stop gradient background with subtle movement.
 class AmbientBackground extends StatefulWidget {
@@ -30,7 +31,10 @@ class _AmbientBackgroundState extends State<AmbientBackground>
   @override
   void initState() {
     super.initState();
-    final clampedFps = widget.targetFps.clamp(1, 30); // avoid extreme values
+  // On mobile, lower the animation FPS a bit more to reduce background repaints
+  final defaultFps = widget.targetFps;
+  final mobile = isMobileLowPerf(context);
+  final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
     _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
     _controller = AnimationController(
       vsync: this,

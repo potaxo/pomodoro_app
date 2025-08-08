@@ -64,19 +64,22 @@ class _StatsScreenState extends State<StatsScreen> {
                       GlassContainer(
                         borderRadius: 16,
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            for (final r in TimeRange.values)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                child: ChoiceChip(
-                                  label: Text(_labelForRange(r)),
-                                  selected: _range == r,
-                                  onSelected: (_) => setState(() => _range = r),
-                                ),
-                              ),
-                          ],
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                for (final r in TimeRange.values)
+                                  ChoiceChip(
+                                    label: Text(_labelForRange(r)),
+                                    selected: _range == r,
+                                    onSelected: (_) => setState(() => _range = r),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -143,11 +146,15 @@ class _StatsScreenState extends State<StatsScreen> {
       try {
         await r.delete();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record deleted.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Record deleted.'), duration: Duration(milliseconds: 500)),
+          );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete record.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete record.'), duration: Duration(milliseconds: 500)),
+          );
         }
       }
     }
@@ -170,11 +177,15 @@ class _StatsScreenState extends State<StatsScreen> {
         final box = Hive.box<PomodoroRecord>('pomodoro_box');
         await box.clear();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All records deleted.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('All records deleted.'), duration: Duration(milliseconds: 500)),
+          );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to clear history.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to clear history.'), duration: Duration(milliseconds: 500)),
+          );
         }
       }
     }
@@ -290,7 +301,7 @@ class _TrendChart extends StatelessWidget {
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY <= 0 ? 1 : maxY,
-                        barTouchData: BarTouchData(enabled: true),
+                        barTouchData: BarTouchData(enabled: MediaQuery.of(context).size.width > 340),
                         titlesData: FlTitlesData(
                           show: true,
                           leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -380,17 +391,27 @@ class _TotalsSummary extends StatelessWidget {
     return GlassContainer(
       borderRadius: 16,
       padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          _pill(context, label: 'Crushed', value: crushed, color: Colors.red[200]!),
-          const SizedBox(width: 8),
-          _pill(context, label: 'Half', value: half, color: Colors.red[400]!),
-          const SizedBox(width: 8),
-          _pill(context, label: 'Whole', value: whole, color: Colors.red[700]!),
-          const Spacer(),
-          Text('$totalTomatoes tomatoes · '),
-          Text('${hours}h ${mins}m', style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            children: [
+              _pill(context, label: 'Crushed', value: crushed, color: Colors.red[200]!),
+              _pill(context, label: 'Half', value: half, color: Colors.red[400]!),
+              _pill(context, label: 'Whole', value: whole, color: Colors.red[700]!),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$totalTomatoes tomatoes · '),
+                  Text('${hours}h ${mins}m', style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -430,29 +451,43 @@ class _RecentSaves extends StatelessWidget {
         children: [
           const Text('Recent Saves', style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          for (final r in records)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: Row(
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: records.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final r = records[index];
+              return Row(
                 children: [
                   Icon(Icons.schedule_rounded, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 6),
-                  Text(_formatWhen(r.date)),
-                  const Spacer(),
-                  _dot(Colors.red[200]!), Text(' ${r.crushedTomatoes}'),
+                  Expanded(
+                    child: Text(
+                      _formatWhen(r.date),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  _dot(Colors.red[400]!), Text(' ${r.halfTomatoes}'),
-                  const SizedBox(width: 6),
-                  _dot(Colors.red[700]!), Text(' ${r.wholeTomatoes}'),
-                  const SizedBox(width: 8),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    children: [
+                      Row(children: [_dot(Colors.red[200]!), Text(' ${r.crushedTomatoes}')]),
+                      Row(children: [_dot(Colors.red[400]!), Text(' ${r.halfTomatoes}')]),
+                      Row(children: [_dot(Colors.red[700]!), Text(' ${r.wholeTomatoes}')]),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
                     tooltip: 'Delete this record',
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     onPressed: () => onDelete(r),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
+          ),
         ],
       ),
     );
