@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUnsavedCounts(); // Load counts that haven't been saved to history yet
+    _loadUnsavedCounts();
   }
 
   @override
@@ -39,8 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
   
-  // --- Data Persistence Logic ---
-  // Loads the current session's counts (not the history)
   Future<void> _loadUnsavedCounts() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -50,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Saves the current session's counts temporarily
   Future<void> _saveUnsavedCounts() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('unsaved_crushed', _crushedTomatoes);
@@ -58,9 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setInt('unsaved_whole', _wholeTomatoes);
   }
   
-  // Saves the completed session to our Hive database history
   Future<void> _saveSessionToHistory() async {
-    // Don't save if all counts are zero
     if (_crushedTomatoes == 0 && _halfTomatoes == 0 && _wholeTomatoes == 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,14 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await box.add(newRecord);
 
-    // Reset the counters for the next session
     setState(() {
       _crushedTomatoes = 0;
       _halfTomatoes = 0;
       _wholeTomatoes = 0;
     });
     
-    // Clear the unsaved counts as well
     await _saveUnsavedCounts();
 
     if (!mounted) return;
@@ -94,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- Timer Logic ---
   void _startTimer() {
     setState(() { _isRunning = true; });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -133,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // --- Tomato Counter Logic ---
   void _updateTomatoCount(String type, int amount) {
     setState(() {
       switch (type) {
@@ -148,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
       }
     });
-    _saveUnsavedCounts(); // Save current progress automatically
+    _saveUnsavedCounts();
   }
 
   String _formatTime(int totalSeconds) {
@@ -226,15 +217,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: _saveSessionToHistory, // UPDATED
+                    onPressed: _saveSessionToHistory,
                     icon: const Icon(Icons.save),
                     label: const Text('Save Session'),
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const StatsScreen()),
+                        context,
+                        MaterialPageRoute(builder: (context) => const StatsScreen()),
                       );
                     },
                     icon: const Icon(Icons.bar_chart),
@@ -250,29 +241,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // --- THIS IS THE CORRECTED WIDGET ---
   Widget _buildTomatoCounter(String name, String duration, int count, String type, int minutes) {
     return GestureDetector(
       onTap: () => _setTimerDuration(minutes),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             IconButton(
               icon: const Icon(Icons.remove_circle_outline, size: 30),
               onPressed: () => _updateTomatoCount(type, -1),
             ),
-            Column(
-              children: [
-                Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-                Text(duration, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-              ],
+            // Expanded makes this Column take up all available space
+            Expanded(
+              child: Column(
+                // Center the text within the Column
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
+                  Text(duration, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                ],
+              ),
             ),
-            Text('$count', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            // Give the number a fixed width to prevent layout shifts
+            SizedBox(
+              width: 40,
+              child: Text(
+                '$count',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline, size: 30),
               onPressed: () => _updateTomatoCount(type, 1),

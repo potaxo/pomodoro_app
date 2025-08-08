@@ -10,7 +10,6 @@ class StatsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get the Hive box that we opened in main.dart
     final Box<PomodoroRecord> box = Hive.box<PomodoroRecord>('pomodoro_box');
 
     return Scaffold(
@@ -18,9 +17,6 @@ class StatsScreen extends StatelessWidget {
         title: const Text('Your Productivity Stats'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      // ValueListenableBuilder is a special widget that listens to our Hive box.
-      // Whenever the data in the box changes, this builder will automatically
-      // rerun and update the UI with the latest data!
       body: ValueListenableBuilder(
         valueListenable: box.listenable(),
         builder: (context, Box<PomodoroRecord> box, _) {
@@ -35,7 +31,6 @@ class StatsScreen extends StatelessWidget {
           }
 
           // --- Data Processing Logic ---
-          // Here, we calculate the total for each tomato type
           int totalCrushed = 0;
           int totalHalf = 0;
           int totalWhole = 0;
@@ -46,71 +41,79 @@ class StatsScreen extends StatelessWidget {
             totalWhole += record.wholeTomatoes;
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                const Text(
-                  'Total Tomatoes Completed',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
-                // This Expanded widget makes the chart take up all available space
-                Expanded(
-                  child: BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: (totalCrushed + totalHalf + totalWhole) * 1.2, // Set a dynamic max Y
-                      barTouchData: BarTouchData(enabled: true),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (double value, TitleMeta meta) {
-                              String text = '';
-                              switch (value.toInt()) {
-                                case 0:
-                                  text = 'Crushed';
-                                  break;
-                                case 1:
-                                  text = 'Half';
-                                  break;
-                                case 2:
-                                  text = 'Whole';
-                                  break;
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(text),
-                              );
-                            },
+          final maxVal = [totalCrushed, totalHalf, totalWhole]
+              .reduce((curr, next) => curr > next ? curr : next)
+              .toDouble();
+
+          // THE FIX IS HERE!
+          // We wrap the entire page content in a SingleChildScrollView.
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  const Text(
+                    'Total Tomatoes Completed',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // We can still use a SizedBox to suggest a good default height for the chart.
+                  SizedBox(
+                    height: 350, 
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: maxVal * 1.2,
+                        barTouchData: BarTouchData(enabled: true),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40, // Increased space for the titles
+                              getTitlesWidget: (double value, TitleMeta meta) {
+                                String text = '';
+                                switch (value.toInt()) {
+                                  case 0:
+                                    text = 'Crushed';
+                                    break;
+                                  case 1:
+                                    text = 'Half';
+                                    break;
+                                  case 2:
+                                    text = 'Whole';
+                                    break;
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 10.0),
+                                  child: Text(text, style: const TextStyle(fontSize: 14)),
+                                );
+                              },
+                            ),
                           ),
+                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         ),
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: false),
+                        barGroups: [
+                          BarChartGroupData(x: 0, barRods: [
+                            BarChartRodData(toY: totalCrushed.toDouble(), color: Colors.red[200], width: 35, borderRadius: BorderRadius.circular(4)),
+                          ]),
+                          BarChartGroupData(x: 1, barRods: [
+                            BarChartRodData(toY: totalHalf.toDouble(), color: Colors.red[400], width: 35, borderRadius: BorderRadius.circular(4)),
+                          ]),
+                          BarChartGroupData(x: 2, barRods: [
+                            BarChartRodData(toY: totalWhole.toDouble(), color: Colors.red[700], width: 35, borderRadius: BorderRadius.circular(4)),
+                          ]),
+                        ],
                       ),
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: false),
-                      barGroups: [
-                        // Bar for Crushed Tomatoes
-                        BarChartGroupData(x: 0, barRods: [
-                          BarChartRodData(toY: totalCrushed.toDouble(), color: Colors.red[200], width: 25, borderRadius: BorderRadius.circular(4)),
-                        ]),
-                        // Bar for Half Tomatoes
-                        BarChartGroupData(x: 1, barRods: [
-                          BarChartRodData(toY: totalHalf.toDouble(), color: Colors.red[400], width: 25, borderRadius: BorderRadius.circular(4)),
-                        ]),
-                        // Bar for Whole Tomatoes
-                        BarChartGroupData(x: 2, barRods: [
-                          BarChartRodData(toY: totalWhole.toDouble(), color: Colors.red[700], width: 25, borderRadius: BorderRadius.circular(4)),
-                        ]),
-                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
