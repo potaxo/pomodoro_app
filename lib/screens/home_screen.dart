@@ -200,6 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _initialCountdownSeconds = next * 60;
                                     _totalSeconds = _initialCountdownSeconds;
                                   });
+                                  // ensure UI text updates immediately
+                                  _secondsVN.value = _totalSeconds;
                                 },
                               ),
                               IconButton(
@@ -212,6 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _initialCountdownSeconds = next * 60;
                                     _totalSeconds = _initialCountdownSeconds;
                                   });
+                                  // ensure UI text updates immediately
+                                  _secondsVN.value = _totalSeconds;
                                 },
                               ),
                             ],
@@ -253,6 +257,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         _isRunning = false;
                         _timer?.cancel();
                       });
+                      // sync display with new total seconds
+                      _secondsVN.value = _totalSeconds;
                     },
                     borderRadius: BorderRadius.circular(12.0),
                     selectedColor: Theme.of(context).colorScheme.primary,
@@ -419,13 +425,20 @@ class _TimerDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: secondsListenable,
-      builder: (context, seconds, _) => Text(
-        _format(seconds),
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 64,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 2,
+      builder: (context, seconds, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Text(
+          _format(seconds),
+          textAlign: TextAlign.center,
+          softWrap: false,
+          maxLines: 1,
+          overflow: TextOverflow.visible,
+          style: const TextStyle(
+            fontSize: 64,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+          ),
         ),
       ),
     );

@@ -334,8 +334,8 @@ class _TrendChart extends StatelessWidget {
                             )
                         ],
                       ),
-                      swapAnimationDuration: Duration.zero,
-                      swapAnimationCurve: Curves.linear,
+                        duration: Duration.zero,
+                        curve: Curves.linear,
                     ),
                   ),
           ),
