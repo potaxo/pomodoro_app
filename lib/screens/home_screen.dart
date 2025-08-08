@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pomodoro_record.dart';
+import 'package:pomodoro_app/screens/stats_screen.dart';
 
 enum TimerMode { stopwatch, countdown }
 
@@ -230,7 +231,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: const Text('Save Session'),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () { /* Stats action later */ },
+                    onPressed: () {
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StatsScreen()),
+                      );
+                    },
                     icon: const Icon(Icons.bar_chart),
                     label: const Text('Statistics'),
                   ),
