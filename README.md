@@ -1,99 +1,112 @@
-# Pomodoro Focus App 🍅
+# Pomodoro Focus 🍅
 
-Cross‑platform Pomodoro timer with a clean UI, local history, and insightful statistics. Built with Flutter for desktop and mobile.
+Lightweight, cross‑platform Pomodoro timer with a clean glass UI, local history, and insightful stats. Built with Flutter for desktop and mobile.
 
-## Features
+## Highlights
 
-- Timer modes: Stopwatch and Countdown
-- Quick-set focus sessions: Crushed (5m), Half (12m), Whole (25m)
-- Session logging: +/- counters per type, then Save Session to store
-- Local storage with Hive (offline, on-device)
-- Statistics page:
+- Two timer modes: Stopwatch and Countdown
+- One-tap presets: Crushed (5m), Half (12m), Whole (25m)
+- Session logging with +/- counters and Save Session
+- Local, offline storage via Hive
+- Statistics page with:
   - Range chips: Day, Week, Month, Year, All
-  - Stacked bar trend by type (crushed/half/whole)
-  - Today vs Yesterday with deltas (tomatoes and minutes)
-  - Totals summary (counts and total time)
-  - Recent Saves timeline with timestamps
-- Data management: delete a specific record or clear all history (both confirmed)
+  - Stacked bar trend (crushed/half/whole)
+  - Today vs Yesterday deltas
+  - Totals summary and recent saves timeline
+- Performance mode: Toggle in the AppBar to pause background animation and lighten effects
 
-## Quick start
+## Get started
 
-1) Install Flutter (stable): https://docs.flutter.dev/get-started/install
+Prerequisites: Flutter (stable) installed and set up.
 
-2) Get dependencies
-```sh
+Install dependencies
+
+```powershell
 flutter pub get
 ```
 
-3) Run
-```sh
+Run the app (auto-detects a connected device or desktop target)
+
+```powershell
 flutter run
 ```
 
-Open the Home screen to track sessions, then tap “Statistics” to view insights.
+Open the Home screen to track focus, then tap “Statistics” for insights.
 
-## Usage tips
+## Build targets (optional)
 
-- Tap a tomato row (Crushed/Half/Whole) to set the countdown duration instantly.
-- Use +/- to adjust the count, then “Save Session” to store it.
-- On the Statistics page:
-  - Switch ranges with the chips (Day/Week/Month/Year/All).
-  - See composition in the stacked bars; hover/tap bars for details.
-  - Compare Today vs Yesterday at a glance (green/red delta).
-  - Manage history:
-    - Delete a single record via the trash icon in “Recent Saves”.
-    - Clear all history via the AppBar delete-forever button.
+- Android (APK)
 
-## Project structure
-
-```
-lib/
-  main.dart
-  models/
-    pomodoro_record.dart        # Hive model (date, crushed, half, whole)
-  screens/
-    home_screen.dart            # Timer, counters, save
-    stats_screen.dart           # Statistics and history management
-  utils/
-    stats_utils.dart            # Aggregation, labeling, comparisons
-  widgets/
-    ambient_background.dart     # Animated gradient background
-    glass_container.dart        # Glassy UI container/button
-```
-
-## Data and privacy
-
-- Sessions are stored locally in a Hive box named `pomodoro_box`.
-- No network calls or external services are used.
-
-## Development
-
-- Analyze code
-```sh
-flutter analyze
-```
-
-- Run tests (widget sample included)
-```sh
-flutter test
-```
-
-- If you modify Hive models, (re)generate adapters
-```sh
-dart run build_runner build --delete-conflicting-outputs
-```
-
-## Builds (optional)
-
-- Android APK
-```sh
+```powershell
 flutter build apk
 ```
 
-- Windows desktop
-```sh
+- iOS (on macOS)
+
+```powershell
+flutter build ios
+```
+
+- Windows
+
+```powershell
 flutter build windows
 ```
 
+- macOS / Linux / Web
+
+```powershell
+flutter build macos
+flutter build linux
+flutter build web
+```
+
+## Project layout
+
+```
+lib/
+  main.dart                     # App entry, global ambient background
+  models/
+    pomodoro_record.dart        # Hive model (date, crushed, half, whole)
+  screens/
+    home_screen.dart            # Timer, counters, save session
+    stats_screen.dart           # Charts, summaries, history management
+  utils/
+    perf.dart                   # Perf mode toggle (persisted)
+    stats_utils.dart            # Aggregations, labels, comparisons
+  widgets/
+    ambient_background.dart     # Animated gradient background
+    glass_container.dart        # Frosted glass container & button
+```
+
+## Data & privacy
+
+- All data is stored locally in a Hive box named `pomodoro_box`.
+- No network calls are made; your data stays on-device.
+
+## Tips
+
+- Tap a tomato row (Crushed/Half/Whole) to quickly set the countdown.
+- Use +/- to adjust counts, then Save Session.
+- In Statistics, switch ranges with chips; hover/tap bars for details (where supported).
+- Use the speed icon to toggle Performance Mode if your device stutters.
+
+## Troubleshooting
+
+- “Adapter not found” after changing models:
+
+```powershell
+dart run build_runner build --delete-conflicting-outputs
+```
+
+- Desktop targets not available: ensure Flutter desktop is enabled and you’re on a supported OS.
+- If builds seem stale, try a clean:
+
+```powershell
+flutter clean; flutter pub get
+```
+
 ## License
+
+This project includes a LICENSE file in the repository root.
 
