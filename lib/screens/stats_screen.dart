@@ -5,7 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
-import 'package:pomodoro_app/widgets/ambient_background.dart';
+// Ambient background is already applied globally in main.dart
+import 'package:pomodoro_app/utils/perf.dart';
 import 'package:pomodoro_app/utils/stats_utils.dart';
 
 // lib/screens/stats_screen.dart
@@ -24,8 +25,7 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final Box<PomodoroRecord> box = Hive.box<PomodoroRecord>('pomodoro_box');
 
-    return AmbientBackground(
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text('Your Productivity Stats'),
           backgroundColor: Colors.transparent,
@@ -34,6 +34,14 @@ class _StatsScreenState extends State<StatsScreen> {
               tooltip: 'Clear all history',
               icon: const Icon(Icons.delete_forever_rounded),
               onPressed: _confirmAndClearAll,
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: Perf.perfMode,
+              builder: (context, on, _) => IconButton(
+                tooltip: on ? 'Performance Mode: ON' : 'Performance Mode: OFF',
+                icon: Icon(on ? Icons.speed_rounded : Icons.speed_outlined),
+                onPressed: () => Perf.setPerfMode(!on),
+              ),
             ),
           ],
         ),
@@ -111,8 +119,7 @@ class _StatsScreenState extends State<StatsScreen> {
             );
           },
         ),
-      ),
-    );
+  );
   }
 
   String _labelForRange(TimeRange r) {
@@ -281,7 +288,8 @@ class _TrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final points = buildRange(range, records);
+  final points = buildRange(range, records);
+  final lowPerf = Perf.perfMode.value;
     final maxY = (points.isEmpty ? 1 : points.map((e) => e.tomatoes.toDouble()).fold<double>(0, (p, e) => e > p ? e : p)) * 1.4;
 
     return GlassContainer(
@@ -301,7 +309,7 @@ class _TrendChart extends StatelessWidget {
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY <= 0 ? 1 : maxY,
-                        barTouchData: BarTouchData(enabled: MediaQuery.of(context).size.width > 340),
+                        barTouchData: BarTouchData(enabled: !lowPerf && MediaQuery.of(context).size.width > 340),
                         titlesData: FlTitlesData(
                           show: true,
                           leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),

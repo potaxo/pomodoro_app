@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pomodoro_app/utils/perf.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/stats_screen.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
@@ -172,6 +173,16 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Pomodoro Focus'),
         backgroundColor: Colors.transparent,
+        actions: [
+          ValueListenableBuilder<bool>(
+            valueListenable: Perf.perfMode,
+            builder: (context, on, _) => IconButton(
+              tooltip: on ? 'Performance Mode: ON' : 'Performance Mode: OFF',
+              icon: Icon(on ? Icons.speed_rounded : Icons.speed_outlined),
+              onPressed: () => Perf.setPerfMode(!on),
+            ),
+          )
+        ],
       ),
       body: RepaintBoundary(
         // Prevent global repaints when only timer text changes.

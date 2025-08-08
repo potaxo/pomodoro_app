@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_app/models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/home_screen.dart';
 import 'package:pomodoro_app/widgets/ambient_background.dart';
+import 'package:pomodoro_app/utils/perf.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is initialized
@@ -19,6 +20,9 @@ Future<void> main() async {
   // Open the box so we can use it later
   await Hive.openBox<PomodoroRecord>('pomodoro_box');
 
+  // Load performance mode preference
+  await Perf.load();
+
   runApp(const MyApp());
 }
 
@@ -32,7 +36,7 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
     );
 
-    return MaterialApp(
+  return MaterialApp(
       title: 'Pomodoro Focus App',
       themeMode: ThemeMode.system,
       theme: base.copyWith(
@@ -56,7 +60,16 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.transparent,
         ),
       ),
-      home: AmbientBackground(child: const HomeScreen()),
+      builder: (context, child) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: Perf.perfMode,
+          builder: (context, perfOn, _) => AmbientBackground(
+            animate: !perfOn,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
+      home: const HomeScreen(),
     );
   }
 }

@@ -10,8 +10,10 @@ class AmbientBackground extends StatefulWidget {
   /// Target "animation" update rate for the subtle gradient movement.
   /// Lower = fewer repaints (better performance). 8–15 gives a smooth, subtle shift.
   final int targetFps;
+  /// When false, render a static background and avoid any animation work.
+  final bool animate;
 
-  const AmbientBackground({super.key, required this.child, this.targetFps = 12});
+  const AmbientBackground({super.key, required this.child, this.targetFps = 12, this.animate = true});
 
   @override
   State<AmbientBackground> createState() => _AmbientBackgroundState();
@@ -31,16 +33,23 @@ class _AmbientBackgroundState extends State<AmbientBackground>
   @override
   void initState() {
     super.initState();
-  // On mobile, lower the animation FPS a bit more to reduce background repaints
-  final defaultFps = widget.targetFps;
-  final mobile = isMobileLowPerf(context);
-  final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
-    _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 60), // full loop duration
-    )..addListener(_onTick)
-     ..repeat();
+    if (widget.animate) {
+      // On mobile, lower the animation FPS a bit more to reduce background repaints
+      final defaultFps = widget.targetFps;
+      final mobile = isMobileLowPerf(context);
+      final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
+      _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 60), // full loop duration
+      )..addListener(_onTick)
+       ..repeat();
+    } else {
+      _minFrameInterval = const Duration(milliseconds: 1000);
+      _t = 0.25; // fixed angle for static background
+      // Dummy controller to satisfy late final; won't be used.
+      _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    }
   }
 
   void _onTick() {
@@ -54,9 +63,36 @@ class _AmbientBackgroundState extends State<AmbientBackground>
 
   @override
   void dispose() {
-    _controller.removeListener(_onTick);
-    _controller.dispose();
+    if (widget.animate) {
+      _controller.removeListener(_onTick);
+      _controller.dispose();
+    } else {
+      _controller.dispose();
+    }
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AmbientBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate != widget.animate) {
+      if (widget.animate) {
+        // start animating
+        final defaultFps = widget.targetFps;
+        final mobile = isMobileLowPerf(context);
+        final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
+        _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
+        _controller.addListener(_onTick);
+        _controller.duration = const Duration(seconds: 60);
+        _controller.repeat();
+      } else {
+        // stop animating and show static
+        _controller.removeListener(_onTick);
+        _controller.stop();
+        _t = 0.25;
+      }
+      if (mounted) setState(() {});
+    }
   }
 
   @override
@@ -70,7 +106,7 @@ class _AmbientBackgroundState extends State<AmbientBackground>
       Color.fromARGB(255, 174, 80, 64),
     ];
 
-    final angle = _t * 2 * pi;
+  final angle = _t * 2 * pi;
     final align = Alignment(cos(angle) * 0.75, sin(angle) * 0.75);
 
     // Only this lightweight background repaints; the child is passed through
@@ -109,7 +145,7 @@ class _AmbientBackgroundState extends State<AmbientBackground>
         ),
         // App content isolated in its own repaint boundary so its rendering
         // isn't invalidated by the gradient animation.
-        RepaintBoundary(child: widget.child),
+  RepaintBoundary(child: widget.child),
       ],
     );
   }

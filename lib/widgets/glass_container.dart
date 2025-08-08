@@ -23,67 +23,73 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
-    final lowPerf = isMobileLowPerf(context);
+    return ValueListenableBuilder<bool>(
+      valueListenable: Perf.perfMode,
+      builder: (context, perfOn, _) {
+        final bg = Theme.of(context).brightness == Brightness.dark
+            ? Colors.white
+            : Colors.black;
+        final lowPerf = isMobileLowPerf(context) || perfOn;
 
-    final decoration = BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          (tintColor ?? bg).withValues(alpha: 0.10),
-          (tintColor ?? bg).withValues(alpha: 0.04),
-        ],
-      ),
-      borderRadius: BorderRadius.circular(borderRadius),
-      border: Border.all(
-        color: (tintColor ?? bg).withValues(alpha: 0.18),
-        width: 1,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.15),
-          blurRadius: lowPerf ? 8 : 16,
-          spreadRadius: 0.5,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    );
-
-    final content = RepaintBoundary(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: lowPerf
-            // Skip expensive blur on mobile; keep the frosted look with tint
-            ? Container(
-                padding: padding,
-                decoration: decoration,
-                child: child,
-              )
-            : BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: padding,
-                  decoration: decoration,
-                  child: child,
-                ),
-              ),
-      ),
-    );
-
-    if (onTap != null) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
+        final decoration = BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              (tintColor ?? bg).withValues(alpha: 0.10),
+              (tintColor ?? bg).withValues(alpha: 0.04),
+            ],
+          ),
           borderRadius: BorderRadius.circular(borderRadius),
-          onTap: onTap,
-          child: content,
-        ),
-      );
-    }
-    return content;
+          border: Border.all(
+            color: (tintColor ?? bg).withValues(alpha: 0.18),
+            width: 1,
+          ),
+          boxShadow: [
+            if (!lowPerf)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 16,
+                spreadRadius: 0.5,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        );
+
+        final content = RepaintBoundary(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: lowPerf
+                // Skip expensive blur on mobile; keep the frosted look with tint
+                ? Container(
+                    padding: padding,
+                    decoration: decoration,
+                    child: child,
+                  )
+                : BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      padding: padding,
+                      decoration: decoration,
+                      child: child,
+                    ),
+                  ),
+          ),
+        );
+
+        if (onTap != null) {
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(borderRadius),
+              onTap: onTap,
+              child: content,
+            ),
+          );
+        }
+        return content;
+      },
+    );
   }
 }
 
