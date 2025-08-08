@@ -2,6 +2,9 @@
 
 Lightweight, cross‑platform Pomodoro timer with a clean glass UI, local history, and insightful stats. Built with Flutter for desktop and mobile.
 
+![Windows Version](./homepage/img/Screenshot%202025-08-09%20004729.png)
+![Android Version](./homepage/img/Screenshot_2025-08-08-22-50-14-995_com.example.po.jpg)
+
 ## Highlights
 
 - Two timer modes: Stopwatch and Countdown
