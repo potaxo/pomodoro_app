@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pomodoro_record.dart';
@@ -19,7 +20,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Timer? _timer;
-  int _totalSeconds = 0;
+  int _totalSeconds = 0; // backing value used for logic
+  final ValueNotifier<int> _secondsVN = ValueNotifier<int>(0); // drives UI text only
   int _initialCountdownSeconds = 0;
   bool _isRunning = false;
   TimerMode _timerMode = TimerMode.stopwatch;
@@ -37,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+  _secondsVN.dispose();
     super.dispose();
   }
   
@@ -91,15 +94,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void _startTimer() {
     setState(() { _isRunning = true; });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_timerMode == TimerMode.stopwatch) {
-          _totalSeconds++;
+      if (_timerMode == TimerMode.stopwatch) {
+        _totalSeconds++;
+        _secondsVN.value = _totalSeconds;
+      } else {
+        if (_totalSeconds > 0) {
+          _totalSeconds--;
+          _secondsVN.value = _totalSeconds;
         } else {
-          if (_totalSeconds > 0) {
-            _totalSeconds--;
-          } else { _stopTimer(); }
+          _stopTimer();
         }
-      });
+      }
     });
   }
 
@@ -114,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _totalSeconds = _timerMode == TimerMode.countdown ? _initialCountdownSeconds : 0;
       _isRunning = false;
     });
+  _secondsVN.value = _totalSeconds;
   }
   
   void _setTimerDuration(int minutes) {
@@ -124,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _totalSeconds = _initialCountdownSeconds;
       _isRunning = false;
     });
+  _secondsVN.value = _totalSeconds;
   }
 
   void _updateTomatoCount(String type, int amount) {
@@ -179,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(child: _TimerDisplay(seconds: _totalSeconds)),
+                        Expanded(child: _TimerDisplay(secondsListenable: _secondsVN)),
                         if (_timerMode == TimerMode.countdown)
                           Column(
                             children: [
@@ -398,8 +405,8 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _TimerDisplay extends StatelessWidget {
-  final int seconds;
-  const _TimerDisplay({required this.seconds});
+  final ValueListenable<int> secondsListenable;
+  const _TimerDisplay({required this.secondsListenable});
 
   String _format(int totalSeconds) {
     int hours = totalSeconds ~/ 3600;
@@ -410,13 +417,16 @@ class _TimerDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _format(seconds),
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        fontSize: 64,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 2,
+    return ValueListenableBuilder<int>(
+      valueListenable: secondsListenable,
+      builder: (context, seconds, _) => Text(
+        _format(seconds),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 64,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 2,
+        ),
       ),
     );
   }

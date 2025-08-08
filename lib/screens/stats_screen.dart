@@ -8,6 +8,8 @@ import 'package:pomodoro_app/widgets/glass_container.dart';
 import 'package:pomodoro_app/widgets/ambient_background.dart';
 import 'package:pomodoro_app/utils/stats_utils.dart';
 
+// lib/screens/stats_screen.dart
+
 class StatsScreen extends StatefulWidget {
   const StatsScreen({super.key});
 
@@ -15,7 +17,7 @@ class StatsScreen extends StatefulWidget {
   State<StatsScreen> createState() => _StatsScreenState();
 }
 
-class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStateMixin {
+class _StatsScreenState extends State<StatsScreen> {
   TimeRange _range = TimeRange.week;
 
   @override
@@ -124,6 +126,60 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
         return 'All';
     }
   }
+
+  Future<void> _confirmAndDeleteRecord(PomodoroRecord r) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this record?'),
+        content: const Text('This will permanently remove the selected session.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        await r.delete();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record deleted.')));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete record.')));
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmAndClearAll() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear all history?'),
+        content: const Text('This will permanently delete all saved sessions.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete all')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      try {
+        final box = Hive.box<PomodoroRecord>('pomodoro_box');
+        await box.clear();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All records deleted.')));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to clear history.')));
+        }
+      }
+    }
+  }
+
 }
 
 class _TodayComparisonCard extends StatelessWidget {
@@ -229,53 +285,57 @@ class _TrendChart extends StatelessWidget {
             height: 280,
             child: points.isEmpty
                 ? const Center(child: Text('No data yet'))
-                : BarChart(
-                    BarChartData(
-                      alignment: BarChartAlignment.spaceAround,
-                      maxY: maxY <= 0 ? 1 : maxY,
-                      barTouchData: BarTouchData(enabled: true),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 34,
-                            getTitlesWidget: (double v, TitleMeta meta) {
-                              final i = v.toInt();
-                              if (i < 0 || i >= points.length) return const SizedBox.shrink();
-                              final label = labelForBucket(points[i].bucketStart, range);
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 6.0),
-                                child: Text(label, style: const TextStyle(fontSize: 10)),
-                              );
-                            },
+                : RepaintBoundary(
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: maxY <= 0 ? 1 : maxY,
+                        barTouchData: BarTouchData(enabled: true),
+                        titlesData: FlTitlesData(
+                          show: true,
+                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 34,
+                              getTitlesWidget: (double v, TitleMeta meta) {
+                                final i = v.toInt();
+                                if (i < 0 || i >= points.length) return const SizedBox.shrink();
+                                final label = labelForBucket(points[i].bucketStart, range);
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 6.0),
+                                  child: Text(label, style: const TextStyle(fontSize: 10)),
+                                );
+                              },
+                            ),
                           ),
                         ),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: false),
+                        barGroups: [
+                          for (int i = 0; i < points.length; i++)
+                            BarChartGroupData(
+                              x: i,
+                              barsSpace: 2,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: points[i].tomatoes.toDouble(),
+                                  rodStackItems: [
+                                    BarChartRodStackItem(0, points[i].crushed.toDouble(), Colors.red[200]!),
+                                    BarChartRodStackItem(points[i].crushed.toDouble(), (points[i].crushed + points[i].half).toDouble(), Colors.red[400]!),
+                                    BarChartRodStackItem((points[i].crushed + points[i].half).toDouble(), points[i].tomatoes.toDouble(), Colors.red[700]!),
+                                  ],
+                                  width: 16,
+                                  borderRadius: BorderRadius.circular(4),
+                                )
+                              ],
+                            )
+                        ],
                       ),
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: false),
-                      barGroups: [
-                        for (int i = 0; i < points.length; i++)
-                          BarChartGroupData(
-                            x: i,
-                            barsSpace: 2,
-                            barRods: [
-                              BarChartRodData(
-                                toY: points[i].tomatoes.toDouble(),
-                                rodStackItems: [
-                                  BarChartRodStackItem(0, points[i].crushed.toDouble(), Colors.red[200]!),
-                                  BarChartRodStackItem(points[i].crushed.toDouble(), (points[i].crushed + points[i].half).toDouble(), Colors.red[400]!),
-                                  BarChartRodStackItem((points[i].crushed + points[i].half).toDouble(), points[i].tomatoes.toDouble(), Colors.red[700]!),
-                                ],
-                                width: 16,
-                                borderRadius: BorderRadius.circular(4),
-                              )
-                            ],
-                          )
-                      ],
+                      swapAnimationDuration: Duration.zero,
+                      swapAnimationCurve: Curves.linear,
                     ),
                   ),
           ),
@@ -408,59 +468,4 @@ class _RecentSaves extends StatelessWidget {
   }
 
   Widget _dot(Color c) => Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle));
-}
-
-extension on _StatsScreenState {
-  Future<void> _confirmAndDeleteRecord(PomodoroRecord r) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete this record?'),
-        content: const Text('This will permanently remove the selected session.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-        ],
-      ),
-    );
-    if (ok == true) {
-      try {
-        await r.delete();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record deleted.')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to delete record.')));
-        }
-      }
-    }
-  }
-
-  Future<void> _confirmAndClearAll() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear all history?'),
-        content: const Text('This will permanently delete all saved sessions.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton.tonal(onPressed: () => Navigator.pop(context, true), child: const Text('Delete all')),
-        ],
-      ),
-    );
-    if (ok == true) {
-      try {
-        final box = Hive.box<PomodoroRecord>('pomodoro_box');
-        await box.clear();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All records deleted.')));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to clear history.')));
-        }
-      }
-    }
-  }
 }
