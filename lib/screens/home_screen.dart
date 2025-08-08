@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import the package
 
 // An enum to represent the two timer modes
 enum TimerMode { stopwatch, countdown }
@@ -25,10 +26,42 @@ class _HomeScreenState extends State<HomeScreen> {
   int _wholeTomatoes = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
+  
+  // --- Data Persistence Logic ---
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _crushedTomatoes = prefs.getInt('crushedTomatoes') ?? 0;
+      _halfTomatoes = prefs.getInt('halfTomatoes') ?? 0;
+      _wholeTomatoes = prefs.getInt('wholeTomatoes') ?? 0;
+    });
+  }
+
+  Future<void> _saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('crushedTomatoes', _crushedTomatoes);
+    await prefs.setInt('halfTomatoes', _halfTomatoes);
+    await prefs.setInt('wholeTomatoes', _wholeTomatoes);
+    
+    // THE FIX IS HERE!
+    // We check if the widget is still on the screen before using its context.
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Progress Saved!')),
+    );
+  }
+
 
   // --- Timer Logic ---
   void _startTimer() {
@@ -44,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_totalSeconds > 0) {
             _totalSeconds--;
           } else {
-            // Stop the timer when it reaches zero
             _stopTimer();
           }
         }
@@ -62,13 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _resetTimer() {
     _timer?.cancel();
     setState(() {
-      // Reset to the initial countdown value or 0 for stopwatch
       _totalSeconds = _timerMode == TimerMode.countdown ? _initialCountdownSeconds : 0;
       _isRunning = false;
     });
   }
   
-  // Sets the timer for countdown mode
   void _setTimerDuration(int minutes) {
     _timer?.cancel();
     setState(() {
@@ -112,91 +142,89 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Pomodoro Focus'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // 1. Timer Display
-            Text(
-              _formatTime(_totalSeconds),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 72, fontWeight: FontWeight.bold),
-            ),
-            
-            // Timer Mode Toggle
-            ToggleButtons(
-              isSelected: [_timerMode == TimerMode.stopwatch, _timerMode == TimerMode.countdown],
-              onPressed: (index) {
-                setState(() {
-                  _timerMode = index == 0 ? TimerMode.stopwatch : TimerMode.countdown;
-                  _resetTimer(); // Reset timer when switching modes
-                });
-              },
-              borderRadius: BorderRadius.circular(8.0),
-              children: const [
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Stopwatch')),
-                Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Countdown')),
-              ],
-            ),
-
-            // Timer Controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: Icon(_isRunning ? Icons.pause_circle_filled : Icons.play_circle_filled),
-                  iconSize: 50,
-                  onPressed: _isRunning ? _stopTimer : _startTimer,
-                  color: Theme.of(context).primaryColor,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.replay_circle_filled),
-                  iconSize: 50,
-                  onPressed: _resetTimer,
-                  color: Colors.grey,
-                ),
-              ],
-            ),
-
-            // 2. Tomato Counters Section
-            Column(
-              children: [
-                _buildTomatoCounter('Crushed Tomato', '5 min', _crushedTomatoes, 'crushed', 5),
-                const SizedBox(height: 16),
-                _buildTomatoCounter('Half Tomato', '12 min', _halfTomatoes, 'half', 12),
-                const SizedBox(height: 16),
-                _buildTomatoCounter('Whole Tomato', '25 min', _wholeTomatoes, 'whole', 25),
-              ],
-            ),
-
-            // 3. Bottom Buttons Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () { /* Save action later */ },
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () { /* Stats action later */ },
-                  icon: const Icon(Icons.bar_chart),
-                  label: const Text('Statistics'),
-                ),
-              ],
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const SizedBox(height: 20),
+              Text(
+                _formatTime(_totalSeconds),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 72, fontWeight: FontWeight.bold, letterSpacing: 2),
+              ),
+              const SizedBox(height: 20),
+              ToggleButtons(
+                isSelected: [_timerMode == TimerMode.stopwatch, _timerMode == TimerMode.countdown],
+                onPressed: (index) {
+                  setState(() {
+                    _timerMode = index == 0 ? TimerMode.stopwatch : TimerMode.countdown;
+                    _resetTimer();
+                  });
+                },
+                borderRadius: BorderRadius.circular(8.0),
+                children: const [
+                  Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Stopwatch')),
+                  Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Countdown')),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(_isRunning ? Icons.pause_circle_filled : Icons.play_circle_filled),
+                    iconSize: 50,
+                    onPressed: _isRunning ? _stopTimer : _startTimer,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.replay_circle_filled),
+                    iconSize: 50,
+                    onPressed: _resetTimer,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Column(
+                children: [
+                  _buildTomatoCounter('Crushed Tomato', '5 min', _crushedTomatoes, 'crushed', 5),
+                  const SizedBox(height: 16),
+                  _buildTomatoCounter('Half Tomato', '12 min', _halfTomatoes, 'half', 12),
+                  const SizedBox(height: 16),
+                  _buildTomatoCounter('Whole Tomato', '25 min', _wholeTomatoes, 'whole', 25),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _saveData,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Save'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () { /* Stats action later */ },
+                    icon: const Icon(Icons.bar_chart),
+                    label: const Text('Statistics'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Updated helper method to build the tomato counter rows
   Widget _buildTomatoCounter(String name, String duration, int count, String type, int minutes) {
     return GestureDetector(
-      onTap: () => _setTimerDuration(minutes), // Set timer on tap
+      onTap: () => _setTimerDuration(minutes),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         decoration: BoxDecoration(
