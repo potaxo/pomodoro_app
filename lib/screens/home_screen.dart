@@ -1,8 +1,11 @@
+// lib/screens/home_screen.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import the package
+import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/pomodoro_record.dart';
 
-// An enum to represent the two timer modes
 enum TimerMode { stopwatch, countdown }
 
 class HomeScreen extends StatefulWidget {
@@ -13,14 +16,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // State variables for the timer
   Timer? _timer;
   int _totalSeconds = 0;
   int _initialCountdownSeconds = 0;
   bool _isRunning = false;
-  TimerMode _timerMode = TimerMode.stopwatch; // Default mode is stopwatch
+  TimerMode _timerMode = TimerMode.stopwatch;
 
-  // State variables for tomato counts
   int _crushedTomatoes = 0;
   int _halfTomatoes = 0;
   int _wholeTomatoes = 0;
@@ -28,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadUnsavedCounts(); // Load counts that haven't been saved to history yet
   }
 
   @override
@@ -38,37 +39,63 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   // --- Data Persistence Logic ---
-  Future<void> _loadData() async {
+  // Loads the current session's counts (not the history)
+  Future<void> _loadUnsavedCounts() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _crushedTomatoes = prefs.getInt('crushedTomatoes') ?? 0;
-      _halfTomatoes = prefs.getInt('halfTomatoes') ?? 0;
-      _wholeTomatoes = prefs.getInt('wholeTomatoes') ?? 0;
+      _crushedTomatoes = prefs.getInt('unsaved_crushed') ?? 0;
+      _halfTomatoes = prefs.getInt('unsaved_half') ?? 0;
+      _wholeTomatoes = prefs.getInt('unsaved_whole') ?? 0;
     });
   }
 
-  Future<void> _saveData() async {
+  // Saves the current session's counts temporarily
+  Future<void> _saveUnsavedCounts() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('crushedTomatoes', _crushedTomatoes);
-    await prefs.setInt('halfTomatoes', _halfTomatoes);
-    await prefs.setInt('wholeTomatoes', _wholeTomatoes);
+    await prefs.setInt('unsaved_crushed', _crushedTomatoes);
+    await prefs.setInt('unsaved_half', _halfTomatoes);
+    await prefs.setInt('unsaved_whole', _wholeTomatoes);
+  }
+  
+  // Saves the completed session to our Hive database history
+  Future<void> _saveSessionToHistory() async {
+    // Don't save if all counts are zero
+    if (_crushedTomatoes == 0 && _halfTomatoes == 0 && _wholeTomatoes == 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add some tomatoes before saving!')),
+      );
+      return;
+    }
     
-    // THE FIX IS HERE!
-    // We check if the widget is still on the screen before using its context.
-    if (!mounted) return;
+    final box = Hive.box<PomodoroRecord>('pomodoro_box');
+    final newRecord = PomodoroRecord()
+      ..date = DateTime.now()
+      ..crushedTomatoes = _crushedTomatoes
+      ..halfTomatoes = _halfTomatoes
+      ..wholeTomatoes = _wholeTomatoes;
 
+    await box.add(newRecord);
+
+    // Reset the counters for the next session
+    setState(() {
+      _crushedTomatoes = 0;
+      _halfTomatoes = 0;
+      _wholeTomatoes = 0;
+    });
+    
+    // Clear the unsaved counts as well
+    await _saveUnsavedCounts();
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Progress Saved!')),
+      const SnackBar(content: Text('Session saved to history!')),
     );
   }
 
-
   // --- Timer Logic ---
   void _startTimer() {
-    setState(() {
-      _isRunning = true;
-    });
-
+    setState(() { _isRunning = true; });
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_timerMode == TimerMode.stopwatch) {
@@ -76,9 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         } else {
           if (_totalSeconds > 0) {
             _totalSeconds--;
-          } else {
-            _stopTimer();
-          }
+          } else { _stopTimer(); }
         }
       });
     });
@@ -86,9 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _stopTimer() {
     _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-    });
+    setState(() { _isRunning = false; });
   }
 
   void _resetTimer() {
@@ -124,9 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
       }
     });
+    _saveUnsavedCounts(); // Save current progress automatically
   }
 
-  // Helper to format the time string
   String _formatTime(int totalSeconds) {
     int hours = totalSeconds ~/ 3600;
     int minutes = (totalSeconds % 3600) ~/ 60;
@@ -134,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  // --- Build Method ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,9 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: _saveData,
+                    onPressed: _saveSessionToHistory, // UPDATED
                     icon: const Icon(Icons.save),
-                    label: const Text('Save'),
+                    label: const Text('Save Session'),
                   ),
                   ElevatedButton.icon(
                     onPressed: () { /* Stats action later */ },
