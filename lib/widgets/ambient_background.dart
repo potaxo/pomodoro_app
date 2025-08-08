@@ -22,7 +22,7 @@ class _AmbientBackgroundState extends State<AmbientBackground>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 18),
+      duration: const Duration(seconds: 60),
     )..repeat();
   }
 
@@ -34,20 +34,13 @@ class _AmbientBackgroundState extends State<AmbientBackground>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final palette = isDark
-        ? [
-            const Color(0xFF241E92),
-            const Color(0xFF5432D3),
-            const Color(0xFF7F39FB),
-            const Color(0xFFE53E3E),
-          ]
-        : [
-            const Color(0xFFFFDEE9),
-            const Color(0xFFB5FFFC),
-            const Color(0xFFFFC1CC),
-            const Color(0xFFFFF6E7),
-          ];
+    // Always-warm palette (kept consistent across light/dark)
+    const palette = [
+      Color.fromARGB(255, 205, 62, 110), // warm peach
+      Color.fromARGB(255, 182, 180, 114), // soft coral
+      Color.fromARGB(255, 154, 156, 64), // warm orange
+      Color.fromARGB(255, 174, 80, 64), // cream
+    ];
 
     return AnimatedBuilder(
       animation: _controller,
@@ -62,10 +55,10 @@ class _AmbientBackgroundState extends State<AmbientBackground>
               center: align,
               radius: 1.2,
               colors: [
-                palette[0].withOpacity(isDark ? 0.55 : 0.85),
-                palette[1].withOpacity(isDark ? 0.40 : 0.70),
-                palette[2].withOpacity(isDark ? 0.30 : 0.55),
-                palette[3].withOpacity(isDark ? 0.25 : 0.45),
+                palette[0].withValues(alpha: 0.85),
+                palette[1].withValues(alpha: 0.70),
+                palette[2].withValues(alpha: 0.55),
+                palette[3].withValues(alpha: 0.45),
               ],
               stops: const [0.10, 0.45, 0.78, 1.0],
             ),
@@ -76,8 +69,8 @@ class _AmbientBackgroundState extends State<AmbientBackground>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(isDark ? 0.02 : 0.06),
-                  Colors.white.withOpacity(0.00),
+                  Colors.white.withValues(alpha: 0.06),
+                  Colors.white.withValues(alpha: 0.00),
                 ],
               ),
             ),

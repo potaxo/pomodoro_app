@@ -170,20 +170,57 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: 24,
                 child: Column(
                   children: [
-                    Text(
-                      _formatTime(_totalSeconds),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 64,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatTime(_totalSeconds),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 64,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                        if (_timerMode == TimerMode.countdown)
+                          Column(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_up_rounded, size: 28),
+                                tooltip: 'Increase minutes',
+                                onPressed: () {
+                                  if (_isRunning) return;
+                                  setState(() {
+                                    final next = ((_totalSeconds ~/ 60) + 1).clamp(0, 24 * 60);
+                                    _initialCountdownSeconds = next * 60;
+                                    _totalSeconds = _initialCountdownSeconds;
+                                  });
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 28),
+                                tooltip: 'Decrease minutes',
+                                onPressed: () {
+                                  if (_isRunning) return;
+                                  setState(() {
+                                    final next = ((_totalSeconds ~/ 60) - 1).clamp(0, 24 * 60);
+                                    _initialCountdownSeconds = next * 60;
+                                    _totalSeconds = _initialCountdownSeconds;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       _timerMode == TimerMode.stopwatch ? 'Stopwatch' : 'Countdown',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -202,13 +239,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: (index) {
                       setState(() {
                         _timerMode = index == 0 ? TimerMode.stopwatch : TimerMode.countdown;
-                        _resetTimer();
+                        if (_timerMode == TimerMode.countdown) {
+                          // If first time switching or no minutes set, default to 25:00
+                          if (_initialCountdownSeconds == 0) {
+                            _initialCountdownSeconds = 25 * 60;
+                          }
+                          _totalSeconds = _initialCountdownSeconds;
+                        } else {
+                          _totalSeconds = 0;
+                        }
+                        _isRunning = false;
+                        _timer?.cancel();
                       });
                     },
                     borderRadius: BorderRadius.circular(12.0),
                     selectedColor: Theme.of(context).colorScheme.primary,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
-                    fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                    fillColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                     children: const [
                       Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Stopwatch')),
                       Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Countdown')),
@@ -330,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   duration,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],

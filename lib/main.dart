@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: base.colorScheme.onSurface,
         ),
         cardTheme: base.cardTheme.copyWith(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           elevation: 0,
         ),
       ),
