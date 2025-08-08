@@ -7,6 +7,7 @@ import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
 // Ambient background is already applied globally in main.dart
 import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomodoro_app/widgets/ambient_background.dart';
 import 'package:pomodoro_app/utils/stats_utils.dart';
 
 // lib/screens/stats_screen.dart
@@ -25,7 +26,10 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final Box<PomodoroRecord> box = Hive.box<PomodoroRecord>('pomodoro_box');
 
-    return Scaffold(
+    return AmbientBackground(
+      animate: !Perf.perfMode.value,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text('Your Productivity Stats'),
           backgroundColor: Colors.transparent,
@@ -51,23 +55,25 @@ class _StatsScreenState extends State<StatsScreen> {
             final records = box.values.toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
+            // Keep stats content simple; avoid extra animations during navigation
             return SingleChildScrollView(
+              key: ValueKey<String>('content_${records.length}_${_range.name}'),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (records.isEmpty)
-                      GlassContainer(
-                        padding: const EdgeInsets.all(20),
-                        borderRadius: 20,
-                        child: const Text(
-                          'No saved sessions yet.\nComplete a session and save it!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 18),
+                      if (records.isEmpty)
+                        GlassContainer(
+                          padding: const EdgeInsets.all(20),
+                          borderRadius: 20,
+                          child: const Text(
+                            'No saved sessions yet.\nComplete a session and save it!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 18),
+                          ),
                         ),
-                      ),
-                    if (records.isNotEmpty) ...[
+                      if (records.isNotEmpty) ...[
                       // Range selector
                       GlassContainer(
                         borderRadius: 16,
@@ -112,14 +118,15 @@ class _StatsScreenState extends State<StatsScreen> {
                         records: records.reversed.take(20).toList(),
                         onDelete: _confirmAndDeleteRecord,
                       ),
-                    ],
+                      ],
                   ],
                 ),
               ),
             );
           },
         ),
-  );
+      ),
+    );
   }
 
   String _labelForRange(TimeRange r) {
@@ -286,10 +293,27 @@ class _TrendChart extends StatelessWidget {
   final List<PomodoroRecord> records;
   const _TrendChart({required this.range, required this.records});
 
+  static bool _postFrameReady = false;
+
   @override
   Widget build(BuildContext context) {
-  final points = buildRange(range, records);
-  final lowPerf = Perf.perfMode.value;
+    // Defer heavy chart building by one frame on first show
+    if (!_postFrameReady) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _postFrameReady = true;
+        // Trigger a rebuild of the parent by calling setState there; here we
+        // can use (context as Element).markNeedsBuild() safely for a local refresh.
+        (context as Element).markNeedsBuild();
+      });
+      return const GlassContainer(
+        borderRadius: 16,
+        padding: EdgeInsets.all(12),
+        child: SizedBox(height: 280, child: Center(child: Text('Loading chart…'))),
+      );
+    }
+
+    final points = buildRange(range, records);
+    final lowPerf = Perf.perfMode.value;
     final maxY = (points.isEmpty ? 1 : points.map((e) => e.tomatoes.toDouble()).fold<double>(0, (p, e) => e > p ? e : p)) * 1.4;
 
     return GlassContainer(

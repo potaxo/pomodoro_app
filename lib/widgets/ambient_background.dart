@@ -33,42 +33,38 @@ class _AmbientBackgroundState extends State<AmbientBackground>
   @override
   void initState() {
     super.initState();
+    // Compute initial throttle (lower FPS on mobile)
+    final defaultFps = widget.targetFps;
+    final mobile = isMobileLowPerf(context);
+    final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
+    _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 60), // full loop duration
+    )..addListener(_onTick);
+
     if (widget.animate) {
-      // On mobile, lower the animation FPS a bit more to reduce background repaints
-      final defaultFps = widget.targetFps;
-      final mobile = isMobileLowPerf(context);
-      final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
-      _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
-      _controller = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 60), // full loop duration
-      )..addListener(_onTick)
-       ..repeat();
+      _controller.repeat();
     } else {
-      _minFrameInterval = const Duration(milliseconds: 1000);
       _t = 0.25; // fixed angle for static background
-      // Dummy controller to satisfy late final; won't be used.
-      _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+      _controller.stop();
     }
   }
 
   void _onTick() {
-    final elapsed = _controller.lastElapsedDuration ?? Duration.zero;
-    if (elapsed - _lastPainted >= _minFrameInterval) {
-      _lastPainted = elapsed;
-      _t = _controller.value; // snapshot
-      if (mounted) setState(() {});
-    }
+  if (!widget.animate) return; // avoid work when static
+  final elapsed = _controller.lastElapsedDuration ?? Duration.zero;
+  if (elapsed - _lastPainted < _minFrameInterval) return;
+  _lastPainted = elapsed;
+  _t = _controller.value; // snapshot
+  if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    if (widget.animate) {
-      _controller.removeListener(_onTick);
-      _controller.dispose();
-    } else {
-      _controller.dispose();
-    }
+  _controller.removeListener(_onTick);
+  _controller.dispose();
     super.dispose();
   }
 
@@ -76,20 +72,19 @@ class _AmbientBackgroundState extends State<AmbientBackground>
   void didUpdateWidget(covariant AmbientBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.animate != widget.animate) {
+      // Update throttle on mode change
+      final defaultFps = widget.targetFps;
+      final mobile = isMobileLowPerf(context);
+      final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
+      _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
+
       if (widget.animate) {
-        // start animating
-        final defaultFps = widget.targetFps;
-        final mobile = isMobileLowPerf(context);
-        final clampedFps = (mobile ? (defaultFps * 0.75) : defaultFps).round().clamp(1, 30);
-        _minFrameInterval = Duration(milliseconds: (1000 / clampedFps).round());
-        _controller.addListener(_onTick);
+        _lastPainted = Duration.zero;
         _controller.duration = const Duration(seconds: 60);
         _controller.repeat();
       } else {
-        // stop animating and show static
-        _controller.removeListener(_onTick);
         _controller.stop();
-        _t = 0.25;
+        _t = 0.25; // fixed
       }
       if (mounted) setState(() {});
     }
@@ -113,7 +108,7 @@ class _AmbientBackgroundState extends State<AmbientBackground>
     // unchanged so its subtree doesn't rebuild every tick.
     return Stack(
       fit: StackFit.expand,
-      children: [
+  children: [
         // Moving radial gradient
         DecoratedBox(
           decoration: BoxDecoration(

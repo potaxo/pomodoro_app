@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomodoro_app/widgets/ambient_background.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/stats_screen.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
@@ -169,10 +170,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pomodoro Focus'),
+    return AmbientBackground(
+      animate: !Perf.perfMode.value,
+      child: Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Pomodoro Focus'),
+          backgroundColor: Colors.transparent,
         actions: [
           ValueListenableBuilder<bool>(
             valueListenable: Perf.perfMode,
@@ -183,8 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         ],
-      ),
-      body: RepaintBoundary(
+        ),
+        body: RepaintBoundary(
         // Prevent global repaints when only timer text changes.
         child: SingleChildScrollView(
         child: Padding(
@@ -355,9 +359,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: GlassButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const StatsScreen()),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const StatsScreen()),
                         );
                       },
                       child: Row(
@@ -375,6 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 20),
             ],
           ),
+        ),
         ),
         ),
       ),
@@ -461,3 +465,5 @@ class _TimerDisplay extends StatelessWidget {
     );
   }
 }
+
+// ... no custom route; we rely on global PageTransitionsTheme for smooth transitions ...

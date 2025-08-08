@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_app/models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/home_screen.dart';
-import 'package:pomodoro_app/widgets/ambient_background.dart';
 import 'package:pomodoro_app/utils/perf.dart';
 
 Future<void> main() async {
@@ -36,10 +35,21 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
     );
 
+    const noTransitions = PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: _NoAnimationsPageTransitionsBuilder(),
+        TargetPlatform.iOS: _NoAnimationsPageTransitionsBuilder(),
+        TargetPlatform.linux: _NoAnimationsPageTransitionsBuilder(),
+        TargetPlatform.macOS: _NoAnimationsPageTransitionsBuilder(),
+        TargetPlatform.windows: _NoAnimationsPageTransitionsBuilder(),
+      },
+    );
+
   return MaterialApp(
       title: 'Pomodoro Focus App',
       themeMode: ThemeMode.system,
       theme: base.copyWith(
+        pageTransitionsTheme: noTransitions,
         scaffoldBackgroundColor: Colors.transparent,
         appBarTheme: base.appBarTheme.copyWith(
           elevation: 0,
@@ -53,6 +63,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+        pageTransitionsTheme: noTransitions,
         scaffoldBackgroundColor: Colors.transparent,
         appBarTheme: const AppBarTheme(
           elevation: 0,
@@ -60,16 +71,23 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.transparent,
         ),
       ),
-      builder: (context, child) {
-        return ValueListenableBuilder<bool>(
-          valueListenable: Perf.perfMode,
-          builder: (context, perfOn, _) => AmbientBackground(
-            animate: !perfOn,
-            child: child ?? const SizedBox.shrink(),
-          ),
-        );
-      },
+  // No global background; each page owns its background to avoid route bleed-through
+  builder: (context, child) => child ?? const SizedBox.shrink(),
       home: const HomeScreen(),
     );
+  }
+}
+
+class _NoAnimationsPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationsPageTransitionsBuilder();
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child; // no in/out animation
   }
 }
