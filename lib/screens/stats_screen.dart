@@ -5,9 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
-// Ambient background is already applied globally in main.dart
+// Ambient background is applied globally in main.dart
 import 'package:pomodoro_app/utils/perf.dart';
-import 'package:pomodoro_app/widgets/ambient_background.dart';
 import 'package:pomodoro_app/utils/stats_utils.dart';
 
 // lib/screens/stats_screen.dart
@@ -26,9 +25,7 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final Box<PomodoroRecord> box = Hive.box<PomodoroRecord>('pomodoro_box');
 
-    return AmbientBackground(
-      animate: !Perf.perfMode.value,
-      child: Scaffold(
+  return Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text('Your Productivity Stats'),
@@ -49,7 +46,7 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
           ],
         ),
-        body: ValueListenableBuilder(
+  body: ValueListenableBuilder(
           valueListenable: box.listenable(),
           builder: (context, Box<PomodoroRecord> box, _) {
             final records = box.values.toList()
@@ -125,8 +122,7 @@ class _StatsScreenState extends State<StatsScreen> {
             );
           },
         ),
-      ),
-    );
+      );
   }
 
   String _labelForRange(TimeRange r) {

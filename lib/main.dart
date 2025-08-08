@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_app/models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/home_screen.dart';
 import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomodoro_app/widgets/ambient_background.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is initialized
@@ -71,8 +72,14 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.transparent,
         ),
       ),
-  // No global background; each page owns its background to avoid route bleed-through
-  builder: (context, child) => child ?? const SizedBox.shrink(),
+      // Single global animated background for all routes to avoid duplication
+      builder: (context, child) => ValueListenableBuilder<bool>(
+        valueListenable: Perf.perfMode,
+        builder: (_, perfOn, _) => AmbientBackground(
+          animate: !perfOn,
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: const HomeScreen(),
     );
   }

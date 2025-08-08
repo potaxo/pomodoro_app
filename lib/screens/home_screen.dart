@@ -2,11 +2,10 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pomodoro_app/utils/perf.dart';
-import 'package:pomodoro_app/widgets/ambient_background.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/stats_screen.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
@@ -170,9 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AmbientBackground(
-      animate: !Perf.perfMode.value,
-      child: Scaffold(
+  return Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text('Pomodoro Focus'),
@@ -188,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
         ),
-        body: RepaintBoundary(
+  body: RepaintBoundary(
         // Prevent global repaints when only timer text changes.
         child: SingleChildScrollView(
         child: Padding(
@@ -381,8 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         ),
         ),
-      ),
-    );
+      );
   }
 
   // --- THIS IS THE CORRECTED WIDGET ---
