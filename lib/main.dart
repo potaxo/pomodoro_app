@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_app/models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/home_screen.dart';
+import 'package:pomodoro_app/widgets/ambient_background.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is initialized
@@ -26,18 +27,36 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final base = ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
+      useMaterial3: true,
+    );
+
     return MaterialApp(
       title: 'Pomodoro Focus App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
-        useMaterial3: true,
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontSize: 72.0, fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(fontSize: 24.0, fontStyle: FontStyle.italic),
-          bodyMedium: TextStyle(fontSize: 14.0),
+      themeMode: ThemeMode.system,
+      theme: base.copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
+        appBarTheme: base.appBarTheme.copyWith(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          foregroundColor: base.colorScheme.onSurface,
+        ),
+        cardTheme: base.cardTheme.copyWith(
+          color: Colors.white.withOpacity(0.05),
+          elevation: 0,
         ),
       ),
-      home: const HomeScreen(),
+      darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+        ),
+      ),
+      home: AmbientBackground(child: const HomeScreen()),
     );
   }
 }

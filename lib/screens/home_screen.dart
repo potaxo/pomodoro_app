@@ -6,6 +6,7 @@ import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/stats_screen.dart';
+import 'package:pomodoro_app/widgets/glass_container.dart';
 
 enum TimerMode { stopwatch, countdown }
 
@@ -154,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pomodoro Focus'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Colors.transparent,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -164,41 +165,90 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const SizedBox(height: 20),
-              Text(
-                _formatTime(_totalSeconds),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 72, fontWeight: FontWeight.bold, letterSpacing: 2),
+              GlassContainer(
+                padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+                borderRadius: 24,
+                child: Column(
+                  children: [
+                    Text(
+                      _formatTime(_totalSeconds),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _timerMode == TimerMode.stopwatch ? 'Stopwatch' : 'Countdown',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
-              ToggleButtons(
-                isSelected: [_timerMode == TimerMode.stopwatch, _timerMode == TimerMode.countdown],
-                onPressed: (index) {
-                  setState(() {
-                    _timerMode = index == 0 ? TimerMode.stopwatch : TimerMode.countdown;
-                    _resetTimer();
-                  });
-                },
-                borderRadius: BorderRadius.circular(8.0),
-                children: const [
-                  Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Stopwatch')),
-                  Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('Countdown')),
-                ],
+              GlassContainer(
+                borderRadius: 16,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                child: Center(
+                  child: ToggleButtons(
+                    isSelected: [
+                      _timerMode == TimerMode.stopwatch,
+                      _timerMode == TimerMode.countdown,
+                    ],
+                    onPressed: (index) {
+                      setState(() {
+                        _timerMode = index == 0 ? TimerMode.stopwatch : TimerMode.countdown;
+                        _resetTimer();
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12.0),
+                    selectedColor: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                    fillColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    children: const [
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Stopwatch')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Countdown')),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    icon: Icon(_isRunning ? Icons.pause_circle_filled : Icons.play_circle_filled),
-                    iconSize: 50,
+                  GlassButton(
                     onPressed: _isRunning ? _stopTimer : _startTimer,
-                    color: Theme.of(context).primaryColor,
+                    borderRadius: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          size: 28,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(_isRunning ? 'Pause' : 'Start'),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.replay_circle_filled),
-                    iconSize: 50,
+                  GlassButton(
                     onPressed: _resetTimer,
-                    color: Colors.grey,
+                    borderRadius: 32,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.replay_rounded, size: 24),
+                        SizedBox(width: 8),
+                        Text('Reset'),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -216,20 +266,37 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: _saveSessionToHistory,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Save Session'),
+                  Expanded(
+                    child: GlassButton(
+                      onPressed: _saveSessionToHistory,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.save_rounded, size: 20),
+                          SizedBox(width: 8),
+                          Text('Save Session'),
+                        ],
+                      ),
+                    ),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const StatsScreen()),
-                      );
-                    },
-                    icon: const Icon(Icons.bar_chart),
-                    label: const Text('Statistics'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GlassButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const StatsScreen()),
+                        );
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.bar_chart_rounded, size: 20),
+                          SizedBox(width: 8),
+                          Text('Statistics'),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -243,47 +310,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- THIS IS THE CORRECTED WIDGET ---
   Widget _buildTomatoCounter(String name, String duration, int count, String type, int minutes) {
-    return GestureDetector(
+    return GlassContainer(
       onTap: () => _setTimerDuration(minutes),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline, size: 30),
-              onPressed: () => _updateTomatoCount(type, -1),
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      borderRadius: 16,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline, size: 28),
+            onPressed: () => _updateTomatoCount(type, -1),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                Text(
+                  duration,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ),
-            // Expanded makes this Column take up all available space
-            Expanded(
-              child: Column(
-                // Center the text within the Column
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500)),
-                  Text(duration, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-                ],
-              ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              '$count',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            // Give the number a fixed width to prevent layout shifts
-            SizedBox(
-              width: 40,
-              child: Text(
-                '$count',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, size: 30),
-              onPressed: () => _updateTomatoCount(type, 1),
-            ),
-          ],
-        ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, size: 28),
+            onPressed: () => _updateTomatoCount(type, 1),
+          ),
+        ],
       ),
     );
   }
