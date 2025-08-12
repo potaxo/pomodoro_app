@@ -6,6 +6,8 @@ import 'package:pomodoro_app/models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/home_screen.dart';
 import 'package:pomodoro_app/utils/perf.dart';
 import 'package:pomodoro_app/widgets/ambient_background.dart';
+import 'package:pomodoro_app/utils/always_on_top.dart';
+import 'package:pomodoro_app/utils/platform.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is initialized
@@ -22,6 +24,15 @@ Future<void> main() async {
 
   // Load performance mode preference
   await Perf.load();
+
+  // Start lightweight ping endpoint and init always-on-top on Windows only.
+  try {
+    if (PlatformEx.isWindows) {
+      await alwaysOnTop.init();
+    }
+  } catch (_) {
+    // keep startup resilient
+  }
 
   runApp(const MyApp());
 }

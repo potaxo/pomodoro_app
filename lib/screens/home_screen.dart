@@ -9,6 +9,8 @@ import 'package:pomodoro_app/utils/perf.dart';
 import '../models/pomodoro_record.dart';
 import 'package:pomodoro_app/screens/stats_screen.dart';
 import 'package:pomodoro_app/widgets/glass_container.dart';
+import 'package:pomodoro_app/utils/always_on_top.dart';
+import 'package:pomodoro_app/utils/platform.dart';
 
 enum TimerMode { stopwatch, countdown }
 
@@ -175,6 +177,23 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Pomodoro Focus'),
           backgroundColor: Colors.transparent,
         actions: [
+          if (PlatformEx.isWindows)
+            FutureBuilder<bool>(
+              future: AlwaysOnTop.get(),
+              builder: (context, snap) {
+                final pinned = snap.data == true;
+                return IconButton(
+                  tooltip: pinned ? 'Window Always on Top: ON' : 'Window Always on Top: OFF',
+                  icon: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
+                  onPressed: () async {
+                    await AlwaysOnTop.toggle();
+                    if (!context.mounted) return;
+                    // force rebuild of just this FutureBuilder by using setState
+                    setState(() {});
+                  },
+                );
+              },
+            ),
           ValueListenableBuilder<bool>(
             valueListenable: Perf.perfMode,
             builder: (context, on, _) => IconButton(

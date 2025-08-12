@@ -1,0 +1,45 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Fetch Flutter dependencies",
+			"type": "shell",
+			"command": "flutter pub get",
+			"isBackground": false,
+			"problemMatcher": [
+				"$dart-errors"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"isBackground": false,
+			"problemMatcher": [
+				"$dart-errors"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter analyze (post-edits)",
+			"type": "shell",
+			"command": "flutter analyze",
+			"isBackground": false,
+			"problemMatcher": [
+				"$dart-errors"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Flutter analyze (after ping removal)",
+			"type": "shell",
+			"command": "flutter analyze",
+			"isBackground": false,
+			"problemMatcher": [
+				"$dart-errors"
+			],
+			"group": "build"
+		}
+	]
+}
