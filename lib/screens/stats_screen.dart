@@ -308,9 +308,14 @@ class _TrendChart extends StatelessWidget {
       );
     }
 
-    final points = buildRange(range, records);
-    final lowPerf = Perf.perfMode.value;
-    final maxY = (points.isEmpty ? 1 : points.map((e) => e.tomatoes.toDouble()).fold<double>(0, (p, e) => e > p ? e : p)) * 1.4;
+  final points = buildRange(range, records);
+  // Use total minutes for bar heights
+  final maxY = (points.isEmpty
+      ? 1
+      : points
+        .map((e) => e.minutes.toDouble())
+        .fold<double>(0, (p, e) => e > p ? e : p)) *
+    1.2;
 
     return GlassContainer(
       borderRadius: 16,
@@ -329,7 +334,28 @@ class _TrendChart extends StatelessWidget {
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
                         maxY: maxY <= 0 ? 1 : maxY,
-                        barTouchData: BarTouchData(enabled: !lowPerf && MediaQuery.of(context).size.width > 340),
+                        barTouchData: BarTouchData(
+                          enabled: true,
+                          touchTooltipData: BarTouchTooltipData(
+                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                              final i = group.x.toInt();
+                              if (i < 0 || i >= points.length) return null;
+                              final p = points[i];
+                              final label = labelForBucket(p.bucketStart, range);
+                              final mins = p.minutes;
+                              String fmt(int m) {
+                                final h = m ~/ 60;
+                                final mm = m % 60;
+                                if (h > 0) return '${h}h ${mm}m';
+                                return '${mm}m';
+                              }
+                              return BarTooltipItem(
+                                '$label\n${fmt(mins)}',
+                                const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                              );
+                            },
+                          ),
+                        ),
                         titlesData: FlTitlesData(
                           show: true,
                           leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -359,16 +385,24 @@ class _TrendChart extends StatelessWidget {
                               x: i,
                               barsSpace: 2,
                               barRods: [
-                                BarChartRodData(
-                                  toY: points[i].tomatoes.toDouble(),
-                                  rodStackItems: [
-                                    BarChartRodStackItem(0, points[i].crushed.toDouble(), Colors.red[200]!),
-                                    BarChartRodStackItem(points[i].crushed.toDouble(), (points[i].crushed + points[i].half).toDouble(), Colors.red[400]!),
-                                    BarChartRodStackItem((points[i].crushed + points[i].half).toDouble(), points[i].tomatoes.toDouble(), Colors.red[700]!),
-                                  ],
-                                  width: 16,
-                                  borderRadius: BorderRadius.circular(4),
-                                )
+                                () {
+                                  final crushedM = points[i].crushed * 5;
+                                  final halfM = points[i].half * 12;
+                                  final wholeM = points[i].whole * 25;
+                                  final s1 = crushedM.toDouble();
+                                  final s2 = (crushedM + halfM).toDouble();
+                                  final total = (crushedM + halfM + wholeM).toDouble();
+                                  return BarChartRodData(
+                                    toY: total,
+                                    rodStackItems: [
+                                      BarChartRodStackItem(0, s1, Colors.red[200]!),
+                                      BarChartRodStackItem(s1, s2, Colors.red[400]!),
+                                      BarChartRodStackItem(s2, total, Colors.red[700]!),
+                                    ],
+                                    width: 16,
+                                    borderRadius: BorderRadius.circular(4),
+                                  );
+                                }()
                               ],
                             )
                         ],
