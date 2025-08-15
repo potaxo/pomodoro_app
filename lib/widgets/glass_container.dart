@@ -2,7 +2,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomo/utils/perf.dart';
 
 /// A reusable frosted glass container with subtle gradient, border and blur.
 class GlassContainer extends StatelessWidget {

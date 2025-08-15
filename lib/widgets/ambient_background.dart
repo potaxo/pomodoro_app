@@ -2,7 +2,7 @@
 
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomo/utils/perf.dart';
 
 /// Animated multi-stop gradient background with subtle movement.
 class AmbientBackground extends StatefulWidget {

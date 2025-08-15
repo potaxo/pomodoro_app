@@ -2,12 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:pomodoro_app/models/pomodoro_record.dart';
-import 'package:pomodoro_app/screens/home_screen.dart';
-import 'package:pomodoro_app/utils/perf.dart';
-import 'package:pomodoro_app/widgets/ambient_background.dart';
-import 'package:pomodoro_app/utils/always_on_top.dart';
-import 'package:pomodoro_app/utils/platform.dart';
+import 'package:pomo/models/pomodoro_record.dart';
+import 'package:pomo/screens/home_screen.dart';
+import 'package:pomo/utils/perf.dart';
+import 'package:pomo/widgets/ambient_background.dart';
+import 'package:pomo/utils/always_on_top.dart';
+import 'package:pomo/utils/platform.dart';
 
 Future<void> main() async {
   // Ensure that Flutter is initialized

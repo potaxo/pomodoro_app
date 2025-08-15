@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/pomodoro_record.dart';
-import 'package:pomodoro_app/widgets/glass_container.dart';
+import 'package:pomo/widgets/glass_container.dart';
 // Ambient background is applied globally in main.dart
-import 'package:pomodoro_app/utils/perf.dart';
-import 'package:pomodoro_app/utils/stats_utils.dart';
+import 'package:pomo/utils/perf.dart';
+import 'package:pomo/utils/stats_utils.dart';
 
 // lib/screens/stats_screen.dart
 

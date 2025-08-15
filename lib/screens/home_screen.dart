@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pomodoro_app/utils/perf.dart';
+import 'package:pomo/utils/perf.dart';
 import '../models/pomodoro_record.dart';
-import 'package:pomodoro_app/screens/stats_screen.dart';
-import 'package:pomodoro_app/widgets/glass_container.dart';
-import 'package:pomodoro_app/utils/always_on_top.dart';
-import 'package:pomodoro_app/utils/platform.dart';
+import 'package:pomo/screens/stats_screen.dart';
+import 'package:pomo/widgets/glass_container.dart';
+import 'package:pomo/utils/always_on_top.dart';
+import 'package:pomo/utils/platform.dart';
 
 enum TimerMode { stopwatch, countdown }
 

@@ -1,6 +1,6 @@
 // lib/utils/stats_utils.dart
 
-import 'package:pomodoro_app/models/pomodoro_record.dart';
+import 'package:pomo/models/pomodoro_record.dart';
 
 enum TimeRange { day, week, month, year, all }
 
