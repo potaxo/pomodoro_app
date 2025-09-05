@@ -112,7 +112,8 @@ class _StatsScreenState extends State<StatsScreen> {
 
                       // Recent saves timeline
                       _RecentSaves(
-                        records: records.reversed.take(20).toList(),
+                        // Show strictly the latest records only (limit 5)
+                        records: records.reversed.take(5).toList(),
                         onDelete: _confirmAndDeleteRecord,
                       ),
                       ],
@@ -284,38 +285,90 @@ class _TodayComparisonCard extends StatelessWidget {
   }
 }
 
-class _TrendChart extends StatelessWidget {
+class _TrendChart extends StatefulWidget {
   final TimeRange range;
   final List<PomodoroRecord> records;
   const _TrendChart({required this.range, required this.records});
 
+  @override
+  State<_TrendChart> createState() => _TrendChartState();
+}
+
+class _TrendChartState extends State<_TrendChart> {
   static bool _postFrameReady = false;
+  // We target ~5 bars in view; user can horizontally scroll for more.
+  static const int _targetVisibleBars = 5;
+  // Persist scroll offset per range.
+  static final Map<TimeRange, double> _savedOffsets = {};
+  final Map<TimeRange, ScrollController> _controllers = {};
+
+  ScrollController _controllerFor(TimeRange r) {
+    if (_controllers[r] != null) return _controllers[r]!;
+    final c = ScrollController(initialScrollOffset: _savedOffsets[r] ?? 0.0);
+    c.addListener(() {
+      _savedOffsets[r] = c.offset;
+    });
+    _controllers[r] = c;
+    return c;
+  }
+
+  @override
+  void didUpdateWidget(covariant _TrendChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.range != widget.range) {
+      // Ensure controller exists so we can maybe jump to end if first time.
+      final points = buildRange(widget.range, widget.records);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctrl = _controllerFor(widget.range);
+        if ((_savedOffsets[widget.range] ?? 0) == 0 && points.length > _targetVisibleBars) {
+          // Jump to end (latest data) by default if user hasn't scrolled this range before.
+            final contentWidth = _contentWidth(points.length, lastViewportWidth);
+            final maxScroll = (contentWidth - lastViewportWidth).clamp(0, double.infinity);
+            if (maxScroll > 0) ctrl.jumpTo(maxScroll.toDouble());
+        }
+      });
+    }
+  }
+
+  double lastViewportWidth = 0; // store latest layout width
+
+  double _estimatedBarWidth(double viewportWidth) {
+    if (viewportWidth <= 0) return 40;
+    return (viewportWidth / _targetVisibleBars).clamp(28, 80);
+  }
+
+  double _contentWidth(int totalBars, double viewportWidth) {
+    if (totalBars <= 0) return viewportWidth;
+    final barW = _estimatedBarWidth(viewportWidth);
+    return totalBars * barW; // minimal spacing embedded via chart alignment
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Defer heavy chart building by one frame on first show
     if (!_postFrameReady) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _postFrameReady = true;
-        // Trigger a rebuild of the parent by calling setState there; here we
-        // can use (context as Element).markNeedsBuild() safely for a local refresh.
-        (context as Element).markNeedsBuild();
+        if (mounted) setState(() => _postFrameReady = true);
       });
       return const GlassContainer(
         borderRadius: 16,
         padding: EdgeInsets.all(12),
-        child: SizedBox(height: 280, child: Center(child: Text('Loading chart…'))),
+        child: SizedBox(height: 320, child: Center(child: Text('Loading chart…'))),
       );
     }
 
-  final points = buildRange(range, records);
-  // Use total minutes for bar heights
-  final maxY = (points.isEmpty
-      ? 1
-      : points
-        .map((e) => e.minutes.toDouble())
-        .fold<double>(0, (p, e) => e > p ? e : p)) *
-    1.2;
+    final points = buildRange(widget.range, widget.records);
+    final maxY = (points.isEmpty
+            ? 1
+            : points.map((e) => e.minutes.toDouble()).fold<double>(0, (p, e) => e > p ? e : p)) *
+        1.2;
 
     return GlassContainer(
       borderRadius: 16,
@@ -323,95 +376,171 @@ class _TrendChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Trend (${_titleForRange(range)})', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('Trend (${_titleForRange(widget.range)})', style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 280,
-            child: points.isEmpty
-                ? const Center(child: Text('No data yet'))
-                : RepaintBoundary(
-                    child: BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: maxY <= 0 ? 1 : maxY,
-                        barTouchData: BarTouchData(
-                          enabled: true,
-                          touchTooltipData: BarTouchTooltipData(
-                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                              final i = group.x.toInt();
-                              if (i < 0 || i >= points.length) return null;
-                              final p = points[i];
-                              final label = labelForBucket(p.bucketStart, range);
-                              final mins = p.minutes;
-                              String fmt(int m) {
-                                final h = m ~/ 60;
-                                final mm = m % 60;
-                                if (h > 0) return '${h}h ${mm}m';
-                                return '${mm}m';
-                              }
-                              return BarTooltipItem(
-                                '$label\n${fmt(mins)}',
-                                const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                              );
-                            },
-                          ),
-                        ),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 34,
-                              getTitlesWidget: (double v, TitleMeta meta) {
-                                final i = v.toInt();
-                                if (i < 0 || i >= points.length) return const SizedBox.shrink();
-                                final label = labelForBucket(points[i].bucketStart, range);
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 6.0),
-                                  child: Text(label, style: const TextStyle(fontSize: 10)),
-                                );
-                              },
+          LayoutBuilder(
+            builder: (context, constraints) {
+              lastViewportWidth = constraints.maxWidth;
+              final viewWidth = constraints.maxWidth;
+              final contentWidth = _contentWidth(points.length, viewWidth);
+              final scrollable = points.length > _targetVisibleBars && contentWidth > viewWidth;
+              final ctrl = _controllerFor(widget.range);
+
+              // After first layout, if we haven't saved an offset, jump to end (latest data)
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && ( _savedOffsets[widget.range] ?? 0) == 0 && scrollable) {
+                  final maxScroll = (contentWidth - viewWidth).clamp(0, double.infinity);
+                  if (maxScroll > 0) ctrl.jumpTo(maxScroll.toDouble());
+                }
+              });
+
+              return SizedBox(
+                height: 280,
+                child: points.isEmpty
+                    ? const Center(child: Text('No data yet'))
+                    : Stack(
+                        children: [
+                          ScrollConfiguration(
+                            behavior: const ScrollBehavior().copyWith(overscroll: false),
+                            child: ListView(
+                              controller: ctrl,
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                SizedBox(
+                                  width: contentWidth,
+                                  child: RepaintBoundary(
+                                    child: BarChart(
+                                      BarChartData(
+                                        alignment: BarChartAlignment.spaceAround,
+                                        maxY: maxY <= 0 ? 1 : maxY,
+                                        barTouchData: BarTouchData(
+                                          enabled: true,
+                                          touchTooltipData: BarTouchTooltipData(
+                                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                              final i = group.x.toInt();
+                                              if (i < 0 || i >= points.length) return null;
+                                              final p = points[i];
+                                              final label = labelForBucket(p.bucketStart, widget.range);
+                                              final mins = p.minutes;
+                                              String fmt(int m) {
+                                                final h = m ~/ 60;
+                                                final mm = m % 60;
+                                                if (h > 0) return '${h}h ${mm}m';
+                                                return '${mm}m';
+                                              }
+                                              return BarTooltipItem(
+                                                '$label\n${fmt(mins)}',
+                                                const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                        titlesData: FlTitlesData(
+                                          show: true,
+                                          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                          bottomTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 34,
+                                              getTitlesWidget: (double v, TitleMeta meta) {
+                                                final i = v.toInt();
+                                                if (i < 0 || i >= points.length) return const SizedBox.shrink();
+                                                final label = labelForBucket(points[i].bucketStart, widget.range);
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(top: 6.0),
+                                                  child: Text(label, style: const TextStyle(fontSize: 10)),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        gridData: const FlGridData(show: false),
+                                        borderData: FlBorderData(show: false),
+                                        barGroups: [
+                                          for (int i = 0; i < points.length; i++)
+                                            BarChartGroupData(
+                                              x: i,
+                                              barsSpace: 2,
+                                              barRods: [
+                                                () {
+                                                  final crushedM = points[i].crushed * 5;
+                                                  final halfM = points[i].half * 12;
+                                                  final wholeM = points[i].whole * 25;
+                                                  final s1 = crushedM.toDouble();
+                                                  final s2 = (crushedM + halfM).toDouble();
+                                                  final total = (crushedM + halfM + wholeM).toDouble();
+                                                  return BarChartRodData(
+                                                    toY: total,
+                                                    rodStackItems: [
+                                                      BarChartRodStackItem(0, s1, Colors.red[200]!),
+                                                      BarChartRodStackItem(s1, s2, Colors.red[400]!),
+                                                      BarChartRodStackItem(s2, total, Colors.red[700]!),
+                                                    ],
+                                                    width: _estimatedBarWidth(viewWidth) * 0.55, // bar width relative to slot
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  );
+                                                }()
+                                              ],
+                                            )
+                                        ],
+                                      ),
+                                      duration: Duration.zero,
+                                      curve: Curves.linear,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        gridData: const FlGridData(show: false),
-                        borderData: FlBorderData(show: false),
-                        barGroups: [
-                          for (int i = 0; i < points.length; i++)
-                            BarChartGroupData(
-                              x: i,
-                              barsSpace: 2,
-                              barRods: [
-                                () {
-                                  final crushedM = points[i].crushed * 5;
-                                  final halfM = points[i].half * 12;
-                                  final wholeM = points[i].whole * 25;
-                                  final s1 = crushedM.toDouble();
-                                  final s2 = (crushedM + halfM).toDouble();
-                                  final total = (crushedM + halfM + wholeM).toDouble();
-                                  return BarChartRodData(
-                                    toY: total,
-                                    rodStackItems: [
-                                      BarChartRodStackItem(0, s1, Colors.red[200]!),
-                                      BarChartRodStackItem(s1, s2, Colors.red[400]!),
-                                      BarChartRodStackItem(s2, total, Colors.red[700]!),
-                                    ],
-                                    width: 16,
-                                    borderRadius: BorderRadius.circular(4),
-                                  );
-                                }()
-                              ],
-                            )
+                          if (scrollable) ...[
+                            // Gradient fade edges
+                            Positioned(
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 24,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [Theme.of(context).scaffoldBackgroundColor, Colors.transparent],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              child: IgnorePointer(
+                                child: Container(
+                                  width: 24,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerRight,
+                                      end: Alignment.centerLeft,
+                                      colors: [Theme.of(context).scaffoldBackgroundColor, Colors.transparent],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ]
                         ],
                       ),
-                        duration: Duration.zero,
-                        curve: Curves.linear,
-                    ),
-                  ),
+              );
+            },
           ),
+          if (points.length > _targetVisibleBars)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text('${points.length} data points', style: const TextStyle(fontSize: 11)),
+            )
         ],
       ),
     );

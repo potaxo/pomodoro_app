@@ -25,7 +25,7 @@ Future<void> main() async {
   // Load performance mode preference
   await Perf.load();
 
-  // Start lightweight ping endpoint and init always-on-top on Windows only.
+  // Init always-on-top on Windows only.
   try {
     if (PlatformEx.isWindows) {
       await alwaysOnTop.init();
